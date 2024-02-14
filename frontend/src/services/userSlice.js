@@ -67,6 +67,7 @@ export const editUser = createAsyncThunk('edit_user', async (data, thunkAPI)=>{
 
 export const deleteUser = createAsyncThunk('delete_user', async (id, thunkAPI)=>{
     try {
+        //const state = thunkAPI.getState()
         const response = await axios.delete(API_URL + `?id=${id}`)
         return response.data
     } catch (error) {
@@ -80,19 +81,16 @@ export const userSlice = createSlice({
     initialState,
     reducers: {
         addReset : (state) => {
-            state.add.isLoading = false,
             state.add.isSuccess = false,
             state.add.isError = false,
             state.add.message = ''
         },
         editReset : (state) => {
-            state.edit.isLoading = false,
             state.edit.isSuccess = false,
             state.edit.isError = false,
             state.edit.message = ''
         },
         deleteReset : (state) => {
-            state.delete.isLoading = false,
             state.delete.isSuccess = false,
             state.delete.isError = false,
             state.delete.message = ''
@@ -121,7 +119,10 @@ export const userSlice = createSlice({
             state.edit.isSuccess = false
             state.edit.isError = false
         })
-        .addCase(editUser.fulfilled, (state)=>{
+        .addCase(editUser.fulfilled, (state, action)=>{
+            const editedUser = action.payload
+            const index = state.list.userList.findIndex(x=>x._id === editedUser._id)
+            state.list.userList.splice(index, 1, editedUser)
             state.edit.isLoading = false
             state.edit.isSuccess = true
             state.edit.isError = false
@@ -137,7 +138,10 @@ export const userSlice = createSlice({
             state.delete.isSuccess = false
             state.delete.isError = false
         })
-        .addCase(deleteUser.fulfilled, (state)=>{
+        .addCase(deleteUser.fulfilled, (state, action)=>{
+            const deletedUserId = action.payload
+            const index = state.list.userList.findIndex(x=>x._id === deletedUserId)
+            state.list.userList.splice(index, 1)
             state.delete.isLoading = false
             state.delete.isSuccess = true
             state.delete.isError = false
@@ -150,6 +154,8 @@ export const userSlice = createSlice({
         })
         .addCase(getUsers.pending, (state)=>{
             state.list.isLoading = true
+            state.list.isSuccess = false
+            state.list.isError = false
         })
         .addCase(getUsers.fulfilled, (state, action)=>{
             state.list.isLoading = false
@@ -160,6 +166,7 @@ export const userSlice = createSlice({
         })
         .addCase(getUsers.rejected, (state, action)=>{
             state.list.isLoading = false
+            state.list.isSuccess = false
             state.list.isError = true
             state.list.message = action.payload
         })

@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from 'react-redux'
-import { Box, useToast, useDisclosure, Button, IconButton, Flex, Spacer, useColorMode, Modal, ModalContent, ModalOverlay } from "@chakra-ui/react"
+import { Box, useToast, Button, IconButton, Flex, Spacer, useColorMode, Modal, ModalContent, ModalOverlay, ModalHeader, ModalCloseButton, ModalBody, Stack, Input, InputGroup, InputRightElement, Select, Divider, ModalFooter } from "@chakra-ui/react"
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { getUsers, deleteUser, deleteReset } from "../services/userSlice"
+import { getUsers, deleteUser, editUser, editReset, deleteReset } from "../services/userSlice"
 import { MySpinner, MyAlert, MyPagination } from "../components"
-import { MdDelete } from 'react-icons/md'
-import UserEditModal from "./UserEditModal"
+import { MdDelete, MdEditNote } from 'react-icons/md'
 import dayjs from 'dayjs'
 
 const UserListScreen = () => {
@@ -16,23 +15,54 @@ const UserListScreen = () => {
     const { colorMode } = useColorMode()
     const [ mouseIdx, setMouseIdx ] = useState(null)
     const [ deleteId, setDeleteId ] = useState('')
-    const { isOpen, onOpen, onClose } = useDisclosure()
+    const [ showConfirmModal, setShowConfirmModal ] = useState(false)
+    const [ showEditModal, setShowEditModal ] = useState(false)
+    const [ editUserDetail, setEditUserDetail ] = useState({id:'',name:'',email:'',password:'',userType:'', index: null})
+    const [ show, setShow ] = useState(false)
     const { isLoading, isError, isSuccess, message, userList, page, pageTotal } = useSelector(state=>state.user.list)
+    const { isLoading: editLoading, isError:editError, isSuccess:editSuccess, message:editMessage } = useSelector(state=>state.user.edit)
     const { isLoading:deleteLoading, isError:deleteError, isSuccess:deleteSuccess, message:deleteMessage } = useSelector(state=>state.user.delete)
-    const { isSuccess: editSuccess } = useSelector(state=>state.user.edit)
     const { pageLimit } = useSelector(state=>state.route)
     const pageNum = searchParams.get('page') ?? 1
     const searchKey = searchParams.get('search') ?? ''
     const dataWidth = ['50px','200px','200px','100px','100px','60px','60px']
- 
+    const closeConfirmModal = () => setShowConfirmModal(false)
+    const closeEditModal = () => setShowEditModal(false)
+    const openConfirmModal = () => setShowConfirmModal(true)
+    const openEditModal = () => setShowEditModal(true)
+
+    const isEmail = (email) => /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(email);
+
     useEffect(()=>{
-        dispatch(getUsers({pageNum, pageLimit, searchKey}))
         if(deleteSuccess){
             setDeleteId('')
-            toast({status:'success', description: 'User deleted successfully.'})
-            onClose()
+            dispatch(deleteReset())
+            toast({description: 'Account deleted successfully.'})
+            closeConfirmModal()
         }
-    },[dispatch, onClose, toast, pageNum, pageLimit, searchKey, editSuccess, deleteSuccess])
+    },[dispatch, deleteSuccess, toast])
+    useEffect(()=>{
+        if(editSuccess){
+            dispatch(editReset())
+            toast({description: 'Account detail updated.'})
+            closeEditModal()
+        }
+    },[dispatch, editSuccess, toast])
+    useEffect(()=>{  
+        dispatch(getUsers({pageNum, pageLimit, searchKey}))
+    },[dispatch, pageNum, pageLimit, searchKey])
+
+    const handleEditUser = () => {
+        if(editUserDetail.name === ''|| editUserDetail.email === '' || editUserDetail.userType === ''){
+            toast({status:'warning', description:'Form not complete!'})
+            return
+        }
+        if(!isEmail(editUserDetail.email)){
+            toast({status:'warning', description:'Invalid email address!'})
+            return
+        }
+        dispatch(editUser(editUserDetail))
+    }
     
     return (
         <Box>
@@ -52,7 +82,7 @@ const UserListScreen = () => {
                     display='flex'
                     alignItems={'center'}
                     textTransform={'uppercase'}
-                    fontWeight={400}
+                    fontWeight={500}
                     fontSize={'sm'}
                     color='#fff5e0'
                     px='3'
@@ -88,7 +118,25 @@ const UserListScreen = () => {
                                 <Box w={dataWidth[3]}>{u.userType}</Box>
                                 <Box w={dataWidth[4]}>{dayjs(u.createdAt).subtract(7, 'hour').format('DD-MMM hh:mm')}</Box>
                                 <Box w={dataWidth[5]} alignItems={'center'} display='flex' justifyContent={'center'}>
-                                    <UserEditModal user={u} />
+                                    <IconButton 
+                                        variant={'ghost'}
+                                        size='xs'
+                                        m={0}
+                                        p={0}
+                                        h='15px'
+                                        _hover={{bg:'none'}}
+                                        icon={<MdEditNote size='20' />} 
+                                        onClick={()=>{
+                                            setEditUserDetail({
+                                                id: u._id,
+                                                name: u.name,
+                                                email: u.email,
+                                                password: '',
+                                                userType: u.userType
+                                            })
+                                            openEditModal()
+                                        }}
+                                    />
                                 </Box>
                                 <Box w={dataWidth[5]} alignItems={'center'} display='flex' justifyContent={'center'}>
                                     <IconButton 
@@ -102,7 +150,7 @@ const UserListScreen = () => {
                                         icon={<MdDelete size='20' />} 
                                         onClick={()=>{
                                             setDeleteId(u._id)
-                                            onOpen()
+                                            openConfirmModal()
                                         }}
                                     />
                                 </Box>
@@ -113,14 +161,121 @@ const UserListScreen = () => {
 
                 <MyPagination path='user' searchKey={searchKey} page={page} pageTotal={pageTotal} />
             </Box>
+
+            <Modal 
+                isOpen={showEditModal} 
+                closeOnOverlayClick={false}
+                motionPreset='slideInBottom'
+            >
+                <ModalOverlay />
+                <ModalContent>
+                <ModalHeader p={3} fontSize={'medium'}>Edit User Detail</ModalHeader>
+                <ModalCloseButton 
+                    isDisabled={editLoading}
+                    onClick={()=>{
+                        dispatch(editReset())
+                        closeEditModal()
+                    }} 
+                />
+                <ModalBody mb={3} p={3}>
+                    <Stack gap={3}>
+                        {editError && <MyAlert message={editMessage} />}
+                        <Input 
+                            size='sm'
+                            type='text'
+                            isDisabled={editLoading}
+                            id='edit-user-name'
+                            value={editUserDetail.name}
+                            onChange={({target})=>{
+                                setEditUserDetail({...editUserDetail, name: target.value})
+                            }}
+                        />
+                        <Input 
+                            size='sm'
+                            type='email'
+                            isDisabled={editLoading}
+                            id='edit-user-email'
+                            value={editUserDetail.email}
+                            onChange={({target})=>{
+                                setEditUserDetail({...editUserDetail, email: target.value})
+                            }}
+                        />
+                        <InputGroup size='sm'>
+                            <Input 
+                                size='sm'
+                                type={show ? 'text' : 'password'}
+                                isDisabled={editLoading}
+                                placeholder="new password"
+                                id='edit-user-password'
+                                value={editUserDetail.password}
+                                onChange={({target})=>{
+                                    setEditUserDetail({...editUserDetail, password: target.value})
+                                }}
+                            />
+                            <InputRightElement width='4rem'>
+                                <Button 
+                                    h='1.8rem' 
+                                    w='3.8rem'
+                                    isDisabled={editLoading}
+                                    variant={'ghost'}
+                                    size='sm'  
+                                    borderRadius={0}
+                                    onClick={()=>setShow(prev=>!prev)}
+                                >
+                                {show ? 'Hide' : 'Show'}
+                                </Button>
+                            </InputRightElement>
+                        </InputGroup>
+                            
+                        <Select
+                            size='sm'
+                            isDisabled={editLoading}
+                            //placeholder={editUserDetail.userType}
+                            value={editUserDetail.userType}
+                            id='edit-user-type'
+                            onChange={({target})=>{
+                                setEditUserDetail({...editUserDetail, userType: target.value})
+                            }} 
+                        >
+                            <option value='bank'>bank</option>
+                            <option value='admin'>admin</option>
+                        </Select> 
+                    </Stack>
+                </ModalBody>
+                <Divider />
+                <ModalFooter p={3}>
+                    <Button 
+                        variant='ghost' 
+                        onClick={()=>{
+                            dispatch(editReset())
+                            closeEditModal()
+                        }} 
+                        size='sm'
+                        isDisabled={editLoading}
+                    >
+                        Cancel
+                    </Button>
+                    <Spacer />
+                    <Button 
+                        isLoading={editLoading}
+                        loadingText='Saving'
+                        variant='outline'
+                        colorScheme="green"
+                        size='sm'
+                        onClick={()=>{
+                            handleEditUser()
+                        }}
+                    >Save</Button>
+                </ModalFooter>
+                </ModalContent>
+            </Modal>
             
             <Modal 
                 isCentered
                 size='xs'
                 closeOnOverlayClick={false}
                 motionPreset='slideInBottom' 
-                isOpen={isOpen} 
-                onClose={onClose}
+                isOpen={showConfirmModal} 
             >
                 <ModalOverlay />
                 <ModalContent p='4'>
@@ -130,7 +285,7 @@ const UserListScreen = () => {
                             onClick={()=>{
                                 setDeleteId('')
                                 dispatch(deleteReset())
-                                onClose()
+                                closeConfirmModal()
                             }}
                             isDisabled={deleteLoading}
                         >Cancel</Button>

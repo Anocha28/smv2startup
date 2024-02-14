@@ -11,6 +11,7 @@ import PaymentListScreen from './screens/PaymentListScreen'
 import SalesListScreen from './screens/SalesListScreen'
 import UserListScreen from "./screens/UserListScreen"
 import UserAddScreen from "./screens/UserAddScreen"
+//import { logout } from "./services/authSlice"
 
 const routeList = [
   {path: '/shipment', element: <ShipmentListScreen />},
@@ -45,10 +46,24 @@ const router = createBrowserRouter(
 )
 const App = () => { 
   const dispatch = useDispatch()
+
   useEffect(()=>{
     const currentRoute = window.location.pathname.split('/')[1]
     dispatch(updateRoute(currentRoute))
   },[dispatch])
+
+  // useEffect(() => {
+  //   const handleTabClose = event => {
+  //     event.preventDefault();
+  //     return (event.returnValue = 'The system will clear your logout.');
+  //   };
+  //   window.addEventListener('beforeunload', handleTabClose);
+  //   return () => {
+  //     dispatch(logout())
+  //     window.removeEventListener('beforeunload', handleTabClose);
+  //   };
+  // }, [dispatch]);
+
   return <RouterProvider router={router} />
 }
 

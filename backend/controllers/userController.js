@@ -21,6 +21,7 @@ const getUsers = asyncHandler(async (req, res) => {
             .find({...keyword})
             .limit(pageLimit)
             .skip(pageLimit * (pageNum - 1))
+            .select('-password')
             .sort('name')
 
         res.status(201).json({userList, page: pageNum, pageTotal: Math.ceil(count / pageLimit)})
@@ -71,7 +72,7 @@ const editUser = asyncHandler(async (req, res) => {
         }
         user.userType = userType
         await user.save()
-        res.status(201).json({message: 'success'})
+        res.status(201).json(user)
     } catch (error) {
         res.status(400);
         throw new Error(error);
@@ -91,7 +92,7 @@ const deleteUser = asyncHandler(async (req, res) => {
             throw new Error('User not found.');
         }
         await User.findByIdAndDelete(id)
-        res.status(201).json({message: 'success'})
+        res.status(201).json(id)
     } catch (error) {
         res.status(400);
         throw new Error(error);

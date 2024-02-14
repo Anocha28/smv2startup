@@ -18,7 +18,7 @@ const TokenCheck = () => {
         const interval = setInterval(() => {
             if(user) {dispatch(authCheck())}
             //console.log(`Logs ${Date.now()} `);
-        }, 300000); //1000*60*5
+        }, 3600000); //1000*60*60 every hour
 
         // This represents the unmount function, in which you need to clear your interval to prevent memory leaks.
         return () => clearInterval(interval); 

@@ -1,4 +1,4 @@
-import React from 'react'
+import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import { Provider } from 'react-redux'
@@ -9,7 +9,7 @@ import { store } from './store.js'
 import { TokenCheck } from './components'
 
 const config = {
-  initialColorMode: 'system',
+  initialColorMode: 'dark',
   useSystemColorMode: true,
   fonts: {
     body: `'Poppins', sans-serif`
@@ -18,15 +18,15 @@ const config = {
 const theme = extendTheme({config})
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+  <StrictMode>
     <ChakraProvider 
       theme={theme}
-      toastOptions={{ defaultOptions: { position: 'top-right', duration: 3000, variant: 'subtle', status: 'success' } }}
+      toastOptions={{ defaultOptions: { position: 'bottom', variant: 'top-accent', duration: 3000, status: 'success' } }}
     >
       <Provider store={store}>
         <TokenCheck />
         <App />
       </Provider>    
     </ChakraProvider>
-  </React.StrictMode>,
+  </StrictMode>,
 )
